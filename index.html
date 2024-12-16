@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Please wait...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+        .message {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+            /* Green for success */
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="message">You have successfully unsubscribed</div>
+    <script>
+        // Function to decode URL-safe Base64 strings
+        function urlSafeBase64Decode(urlSafeBase64) {
+            const base64 = urlSafeBase64.replace(/-/g, "+").replace(/_/g, "/");
+            const paddedBase64 = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+            return atob(paddedBase64); // Decode using atob
+        }
+
+        // Extract and decode Base64 URL from the query or path
+        function getDecodedUrl() {
+            const url = new URL(window.location.href);
+
+            // 1. Check if the query string has keys
+            const params = new URLSearchParams(url.search);
+            for (const [key, value] of params.entries()) {
+                try {
+                    // Decode the Base64 value
+                    const decodedValue = urlSafeBase64Decode(value);
+
+                    // Attempt to parse the decoded value as JSON
+                    const parsedData = JSON.parse(decodedValue);
+
+                    // Check if `w_url` exists in the parsed JSON
+                    if (parsedData.w_url) {
+                        return { base64: value, w_url: parsedData.w_url };
+                    }
+                } catch {
+                    // Ignore invalid Base64 or JSON parsing errors
+                }
+            }
+
+            // 2. Check if the entire query is Base64 encoded
+            if (url.search.length > 1) {
+                try {
+                    const base64Query = url.search.slice(1);
+                    const decodedQuery = urlSafeBase64Decode(base64Query);
+                    const parsedQuery = JSON.parse(decodedQuery);
+
+                    if (parsedQuery.w_url) {
+                        return { base64: base64Query, w_url: parsedQuery.w_url };
+                    }
+                } catch {
+                    // Ignore invalid Base64 or JSON parsing errors
+                }
+            }
+            return null; // No valid Base64 or JSON found
+        }
+
+        // Normalize w_url to ensure it ends with a single "/"
+        function normalizeUrl(url) {
+            return url.replace(/\/+$/, ""); // Remove all trailing slashes
+        }
+
+        // Main function to handle redirect
+        function handleRedirect() {
+            const result = getDecodedUrl();
+            if (result) {
+                const { base64, w_url } = result;
+
+                // Normalize w_url and append query string
+                const normalizedUrl = normalizeUrl(w_url);
+                // Redirect to the URL with the original Base64 data in the query
+                window.location.href = `${normalizedUrl}?q=${encodeURIComponent(base64)}`;
+                return;
+            }
+
+            // // Default to Google if no valid redirect URL is found
+            // window.location.href = "https://google.com/";
+        }
+
+        // Run the redirect logic
+        handleRedirect();
+    </script>
+</body>
+
+</html>
